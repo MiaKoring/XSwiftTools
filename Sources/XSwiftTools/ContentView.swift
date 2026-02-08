@@ -7,6 +7,7 @@ struct ContentView: View {
     @State var targets = [Target]()
     @State var tests = [Target: TargetTests]()
     @State var parser: TestParser?
+    @AppStorage(PathKey.self) var lastPath
     
     var body: some View {
         Button("select path & scan") {
@@ -20,18 +21,7 @@ struct ContentView: View {
                     allowSelectingDirectories: true
                 )
                 guard let path = path?.relativePath else { return }
-                print(path)
-                let parser = TestParser(path: path)
-                self.parser = parser
-                
-                do {
-                    targets = try await parser.testTargets()
-                    for target in targets {
-                        tests[target] = parser.tests(in: target)
-                    }
-                } catch {
-                    print(error.localizedDescription)
-                }
+                await getResult(for: path)
             }
         }
         
@@ -61,6 +51,26 @@ struct ContentView: View {
         }
         .frame(maxWidth: .infinity)
         .padding()
+        .task {
+            if let lastPath {
+                await getResult(for: lastPath)
+            }
+        }
+    }
+    
+    private func getResult(for path: String) async {
+        let parser = TestParser(path: path)
+        self.parser = parser
+        
+        do {
+            targets = try await parser.testTargets()
+            lastPath = path
+            for target in targets {
+                tests[target] = parser.tests(in: target)
+            }
+        } catch {
+            print(error.localizedDescription)
+        }
     }
 }
 
@@ -92,4 +102,10 @@ struct TestLine: View {
             }
         }
     }
+}
+
+
+struct PathKey: AppStorageKey {
+    static let defaultValue: String? = nil
+    static let name = "path"
 }
