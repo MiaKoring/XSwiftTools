@@ -36,33 +36,30 @@ struct ContentView: View {
         }
         
         ScrollView {
-            ForEach(targets, id: \.name) { target in
-                HStack {
+            VStack(alignment: .leading) {
+                ForEach(targets, id: \.name) { target in
                     Text(target.name)
-                    Spacer()
-                }
-                if let tests = tests[target] {
-                    
-                    VStack {
-                        if !tests.freestanding.isEmpty {
-                            HStack {
-                                Text("Freestanding")
-                                Spacer()
-                            }
-                            ForEach(tests.freestanding, id: \.function) { test in
-                                TestLine(test: test)
-                            }
-                            .padding(.leading, 20)
-                        }
+                    if let tests = tests[target] {
                         
-                        ForEach(tests.suites, id: \.structName) { suite in
-                            SuiteView(suite: suite)
+                        VStack(alignment: .leading) {
+                            if !tests.freestanding.isEmpty {
+                                Text("Freestanding")
+                                ForEach(tests.freestanding, id: \.function) { test in
+                                    TestLine(test: test)
+                                }
+                                .padding(.leading, 20)
+                            }
+                            
+                            ForEach(tests.suites, id: \.structName) { suite in
+                                SuiteView(suite: suite)
+                            }
                         }
+                        .padding(.leading, 20)
                     }
-                    .padding(.leading, 20)
                 }
             }
         }
+        .frame(maxWidth: .infinity)
         .padding()
     }
 }
@@ -71,15 +68,14 @@ struct SuiteView: View {
     let suite: TestSuite
     
     var body: some View {
-        HStack {
+        VStack(alignment: .leading) {
             Text(suite.name ?? suite.structName)
-            Spacer()
+            
+            ForEach(suite.tests, id: \.function) { test in
+                TestLine(test: test)
+            }
+            .padding(.leading, 20)
         }
-        
-        ForEach(suite.tests, id: \.function) { test in
-            TestLine(test: test)
-        }
-        .padding(.leading, 20)
     }
 }
 
@@ -94,7 +90,6 @@ struct TestLine: View {
             } else {
                 Text("\(test.function)()")
             }
-            Spacer()
         }
     }
 }
