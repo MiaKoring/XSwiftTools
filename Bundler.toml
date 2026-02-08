@@ -1,0 +1,6 @@
+format_version = 2
+
+[apps.XSwiftTools]
+identifier = 'de.amethystsoft.XSwiftTools'
+product = 'XSwiftTools'
+version = '0.1.0'
