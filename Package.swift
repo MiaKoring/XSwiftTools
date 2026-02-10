@@ -6,14 +6,17 @@ import PackageDescription
 let package = Package(
     name: "XSwiftTools",
     platforms: [
-      .macOS(.v14)
+      .macOS(.v14),
+      .iOS(.v17)
     ],
     dependencies: [
-        .package(
+        /*.package(
             url: "https://github.com/stackotter/swift-cross-ui",
             branch: "main"
-        ),
-        .package(path: "../swift-test-parser")
+        ),*/
+        .package(path: "../swift-test-parser"),
+        .package(path: "../swift-cross-ui"),
+        .package(url: "https://github.com/moreSwift/swift-bundler", branch: "main")
     ],
     targets: [
         .executableTarget(
@@ -22,6 +25,7 @@ let package = Package(
                 .product(name: "TestParser", package: "swift-test-parser"),
                 .product(name: "SwiftCrossUI", package: "swift-cross-ui"),
                 .product(name: "DefaultBackend", package: "swift-cross-ui"),
+                .product(name: "SwiftBundlerRuntime", package: "swift-bundler")
             ]
         )
     ]
