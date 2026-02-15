@@ -1,5 +1,5 @@
 {
-  "originHash" : "623e7b8bef22642d8b39eb3e7f82ab439fa3fe15b8eaf9c624dcf8293c56b6a8",
+  "originHash" : "ba84ae9a20539b7dd4817aa5c5ad56973427fb6d5c42c19e22dfe351cbaf4704",
   "pins" : [
     {
       "identity" : "jpeg",
@@ -35,15 +35,6 @@
       "state" : {
         "revision" : "6c050d5ef8e1aa6342528460db614e9770d7f804",
         "version" : "1.1.1"
-      }
-    },
-    {
-      "identity" : "swift-case-paths",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/pointfreeco/swift-case-paths",
-      "state" : {
-        "revision" : "6989976265be3f8d2b5802c722f9ba168e227c71",
-        "version" : "1.7.2"
       }
     },
     {
@@ -97,15 +88,6 @@
       "state" : {
         "revision" : "1770152df756b54c28ef1787df1e957d93cc62d5",
         "version" : "0.0.6"
-      }
-    },
-    {
-      "identity" : "swift-parsing",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/pointfreeco/swift-parsing",
-      "state" : {
-        "revision" : "3432cb81164dd3d69a75d0d63205be5fbae2c34b",
-        "version" : "0.14.1"
       }
     },
     {
@@ -173,24 +155,6 @@
       "state" : {
         "revision" : "4a0ea7695a17c4e4053e15814110b5086c3c2ceb",
         "version" : "1.4.1"
-      }
-    },
-    {
-      "identity" : "swiftlintplugin",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/lukepistrol/SwiftLintPlugin",
-      "state" : {
-        "revision" : "a3877065a7d72ee40e1fa64e13b9e33e846c667c",
-        "version" : "0.63.1"
-      }
-    },
-    {
-      "identity" : "xctest-dynamic-overlay",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/pointfreeco/xctest-dynamic-overlay",
-      "state" : {
-        "revision" : "34e463e98ab8541c604af706c99bed7160f5ec70",
-        "version" : "1.8.1"
       }
     },
     {

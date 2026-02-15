@@ -7,7 +7,7 @@ struct TestSidebar: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading) {
-                ForEach(viewModel.targets, id: \.name) { target in
+                ForEach(viewModel.tests.keys, id: \.name) { target in
                     if let tests = viewModel.tests[target] {
                         RunnableRow(test: tests) {
                             Text(tests.targetName)
@@ -65,10 +65,10 @@ struct RunButton: View {
     
     var state: TestState? {
         if test is Test {
-            return viewModel.testState[test.uiFilter]
+            return viewModel.testState[test.filter]
         }
         if test is TestSuite {
-            return viewModel.suiteState[test.uiFilter]
+            return viewModel.suiteState[test.filter]
         }
         return nil
     }
@@ -99,7 +99,11 @@ struct RunButton: View {
                 .frame(width: 20, height: 20)
                 .overlay {
                     if isHovered {
-                        Text("▶")
+                        if !viewModel.isRunningTests {
+                            Text("▶")
+                        } else {
+                            Text("x")
+                        }
                     } else if state == .passed {
                         Text("✓")
                             .foregroundColor(.white)
@@ -114,7 +118,9 @@ struct RunButton: View {
                     isHovered = hovering
                 }
                 .onTapGesture {
-                    runTest.wrappedValue?(test)
+                    if !viewModel.isRunningTests {
+                        runTest.wrappedValue?(test)
+                    }
                 }
         } else {
             ProgressView()

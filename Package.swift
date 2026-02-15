@@ -15,8 +15,7 @@ let package = Package(
             branch: "main"
         ),*/
         .package(path: "../swift-test-parser"),
-        .package(path: "../swift-cross-ui"),
-        .package(path: "../swift-test-output-parsing")
+        .package(path: "../swift-cross-ui")
     ],
     targets: [
         .executableTarget(
