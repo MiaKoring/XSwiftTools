@@ -2,14 +2,13 @@ import SwiftCrossUI
 import TestParser
 
 struct TestSidebar: View {
-    let targets: [Target]
-    let tests: [Target: TargetTests]
+    @Environment(TestVM.self) var viewModel
     
     var body: some View {
         ScrollView {
             VStack(alignment: .leading) {
-                ForEach(targets, id: \.name) { target in
-                    if let tests = tests[target] {
+                ForEach(viewModel.targets, id: \.name) { target in
+                    if let tests = viewModel.tests[target] {
                         RunnableRow(test: tests) {
                             Text(tests.targetName)
                                 .padding(.trailing, 30)
@@ -62,19 +61,66 @@ struct RunButton: View {
     @Environment(\.runTest) var runTest
     @State var isHovered = false
     
+    @Environment(TestVM.self) var viewModel
+    
+    var state: TestState? {
+        if test is Test {
+            return viewModel.testState[test.uiFilter]
+        }
+        if test is TestSuite {
+            return viewModel.suiteState[test.uiFilter]
+        }
+        return nil
+    }
+    
+    var color: Color {
+        switch state {
+            case .passed:
+                .green
+            case .failed:
+                .red
+            case nil, .waiting, .running:
+                .gray
+        }
+    }
+    
+    var opacity: Double {
+        if state == .passed || state == .failed {
+            return 1
+        }
+        if isHovered { return 0.3 }
+        return 0
+    }
+    
     var body: some View {
-        RoundedRectangle(cornerRadius: 5)
-            .fill(.gray.opacity(isHovered ? 0.3: 0.0))
+        if state != .waiting && state != .running {
+            RoundedRectangle(cornerRadius: 5)
+                .fill(color.opacity(opacity))
+                .frame(width: 20, height: 20)
+                .overlay {
+                    if isHovered {
+                        Text("▶")
+                    } else if state == .passed {
+                        Text("✓")
+                            .foregroundColor(.white)
+                    } else if state == .failed {
+                        Text("x")
+                            .foregroundColor(.white)
+                    } else {
+                        Text("▶")
+                    }
+                }
+                .onHover { hovering in
+                    isHovered = hovering
+                }
+                .onTapGesture {
+                    runTest.wrappedValue?(test)
+                }
+        } else {
+            ProgressView()
+            .resizable()
             .frame(width: 20, height: 20)
-            .overlay {
-                Text("▶")
-            }
-            .onHover { hovering in
-                isHovered = hovering
-            }
-            .onTapGesture {
-                runTest.wrappedValue?(test)
-            }
+        }
     }
 }
 

@@ -16,7 +16,7 @@ let package = Package(
         ),*/
         .package(path: "../swift-test-parser"),
         .package(path: "../swift-cross-ui"),
-        .package(url: "https://github.com/moreSwift/swift-bundler", branch: "main")
+        .package(path: "../swift-test-output-parsing")
     ],
     targets: [
         .executableTarget(
@@ -24,8 +24,7 @@ let package = Package(
             dependencies: [
                 .product(name: "TestParser", package: "swift-test-parser"),
                 .product(name: "SwiftCrossUI", package: "swift-cross-ui"),
-                .product(name: "DefaultBackend", package: "swift-cross-ui"),
-                .product(name: "SwiftBundlerRuntime", package: "swift-bundler")
+                .product(name: "DefaultBackend", package: "swift-cross-ui")
             ]
         )
     ]
