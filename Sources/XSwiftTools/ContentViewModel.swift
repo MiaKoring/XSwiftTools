@@ -15,6 +15,7 @@ final class TestVM: NSObject, @MainActor XMLParserDelegate {
     var targetState: TestState?
     var runOutput: String = ""
     var path: String?
+    var error: (any Error, String)?
     
     private var outputPath: String {
         let xSwiftToolsDirectory = path! + "/.build/XSwiftTools"
@@ -171,8 +172,20 @@ final class TestVM: NSObject, @MainActor XMLParserDelegate {
         while !FileManager.default.fileExists(atPath: path) {
             try? await Task.sleep(for: .milliseconds(100))
         }
-        // Give it time to finish writing
-        try? await Task.sleep(for: .milliseconds(200))
+        
+        var tries = 0
+
+        while tries < 10 {
+            try? await Task.sleep(for: .milliseconds(50 + 25 * tries))
+            
+            if
+                let data = FileManager.default.contents(atPath: path),
+                String(data: data, encoding: .utf8)?.hasSuffix("</testsuites>") == true
+            {
+                break
+            }
+            tries += 1
+        }
         
         updateUIFromOutput(
             path: path
