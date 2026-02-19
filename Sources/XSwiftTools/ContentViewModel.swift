@@ -172,7 +172,7 @@ final class TestVM: NSObject, @MainActor XMLParserDelegate {
         while !FileManager.default.fileExists(atPath: path) {
             try? await Task.sleep(for: .milliseconds(100))
         }
-        
+
         var tries = 0
 
         while tries < 10 {

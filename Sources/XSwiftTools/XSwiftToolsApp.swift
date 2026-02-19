@@ -8,10 +8,18 @@ struct XSwiftToolsApp: App {
     @Environment(\.chooseFile) var fileOpenDialog
     @State var viewModel: TestVM = TestVM(path: nil)
     @AppStorage(PathKey.self) var lastPath
+    @State var pluginManager = PluginManager()
     
     var body: some Scene {
         WindowGroup("XSwiftTools") {
             #hotReloadable {
+                Text("\(pluginManager.uiPlugins.first)")
+                Text("\(pluginManager.uiPlugins.first?.buildPrimaryUI())")
+                if let view = pluginManager.uiPlugins.first?.buildPrimaryUI() as? AnyView {
+                    view
+                } else {
+                    Text("Conversion failed")
+                }
                 ContentView()
                     .environment(viewModel)
                     .task { await startup() }
@@ -76,5 +84,6 @@ struct XSwiftToolsApp: App {
         if let lastPath {
             await getResult(for: lastPath)
         }
+        pluginManager.load(at: "/Users/miakoring/Downloads/libtestPlugin.dylib")
     }
 }
