@@ -6,7 +6,8 @@ import TestParser
 @main
 struct XSwiftToolsApp: App {
     @Environment(\.chooseFile) var fileOpenDialog
-    @State var viewModel: TestVM = TestVM(path: nil)
+    @State var viewModel: TestViewModel = TestViewModel(path: nil)
+    @State var topBarModel: TopBarViewModel = TopBarViewModel()
     @AppStorage(PathKey.self) var lastPath
     
     var body: some Scene {
@@ -14,6 +15,7 @@ struct XSwiftToolsApp: App {
             #hotReloadable {
                 ContentView()
                     .environment(viewModel)
+                    .environment(topBarModel)
                     .task { await startup() }
                     .sheet(
                         isPresented: Binding(
@@ -43,12 +45,24 @@ struct XSwiftToolsApp: App {
     }
     
     private func getResult(for path: String) async {
+        defer {
+            topBarModel.processes.removeAll(where: { $0 == .indexing})
+        }
+        
+        topBarModel.processes.append(.indexing)
         let parser = TestParser(path: path)
         
         do {
-            let targets = try await parser.testTargets()
+            let (targets, name) = try await parser.testTargets()
             lastPath = path
             viewModel.path = path
+            topBarModel.path = path
+            topBarModel.projectName = name
+            
+            if !targets.isEmpty {
+                topBarModel.availableResponsers.insert(.test)
+                topBarModel.selected = .test
+            }
             
             for target in targets {
                 viewModel.tests[target] = parser.tests(in: target)

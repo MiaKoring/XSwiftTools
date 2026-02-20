@@ -8,7 +8,7 @@ import FoundationXML
 
 @ObservableObject
 @MainActor
-final class TestVM: NSObject, @MainActor XMLParserDelegate {
+final class TestViewModel: NSObject, @MainActor XMLParserDelegate {
     var tests = [Target: TargetTests]()
     var suiteState = [String: TestState]()
     var testState = [String: TestState]()
@@ -40,16 +40,12 @@ final class TestVM: NSObject, @MainActor XMLParserDelegate {
     
     /// Runs all test inside the passed scope
     /// If passed a target, suites get run individually
-    func runTest(_ test: TestRunnable, shouldBuild: Bool = true) async throws {
+    func runTest(
+        _ test: TestRunnable
+    ) async throws {
         guard let path else {
             print("Path must be set")
             return
-        }
-        
-        if shouldBuild {
-            try await build(for: test)
-            print(outputPathParameter)
-            print(outputPath)
         }
         isRunningTests = true
         
@@ -82,11 +78,11 @@ final class TestVM: NSObject, @MainActor XMLParserDelegate {
                 await waitAndUpdate(path: outputPath)
             case let target as TargetTests:
                 for suite in target.suites {
-                    try await runTest(suite, shouldBuild: false)
+                    try await runTest(suite)
                 }
                 
                 for test in target.freestanding {
-                    try await runTest(test, shouldBuild: false)
+                    try await runTest(test)
                 }
                 return
             default: return
@@ -103,15 +99,6 @@ final class TestVM: NSObject, @MainActor XMLParserDelegate {
         let parser = XMLParser(data: data)
         parser.delegate = self
         parser.parse()
-    }
-    
-    private func build(for test: TestRunnable) async throws {
-        guard let path else {
-            print("Path must be set")
-            return
-        }
-        let runner = TestRunner(path: path)
-        try await runner.build(test.testProductName)
     }
     
     /// Marks all descendant of `TestRunnable` as waiting

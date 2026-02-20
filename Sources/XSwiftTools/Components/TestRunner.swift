@@ -2,7 +2,7 @@ import SwiftCrossUI
 import TestParser
 
 struct TestSidebar: View {
-    @Environment(TestVM.self) var viewModel
+    @Environment(TestViewModel.self) var viewModel
     
     var body: some View {
         ScrollView {
@@ -61,7 +61,7 @@ struct RunButton: View {
     @Environment(\.runTest) var runTest
     @State var isHovered = false
     
-    @Environment(TestVM.self) var viewModel
+    @Environment(TestViewModel.self) var viewModel
     
     var state: TestState? {
         if test is Test {
