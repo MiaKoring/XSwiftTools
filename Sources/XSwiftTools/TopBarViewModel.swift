@@ -19,6 +19,27 @@ final class TopBarViewModel {
         })
     }
     
+    var stringResponders: [String] {
+        get {
+            availableResponsers.map {
+                $0.string
+            }
+        }
+    }
+    
+    var selectedStringBinding: Binding<String?> {
+        Binding(
+            get: { self.selected?.string },
+            set: { newValue in
+                guard let newValue else {
+                    self.selected = nil
+                    return
+                }
+                self.selected = Responder(string: newValue)
+            }
+        )
+    }
+    
     func build(for test: TestRunnable) async throws {
         defer { removeBuildingProcesses() }
         
@@ -72,4 +93,26 @@ enum TopBarProcess: Hashable {
     case buildFailed
     case building(file: Int, total: Int)
     case indexing
+}
+
+enum Responder: Hashable {
+    case test
+    case sbun(String)
+}
+extension Responder {
+    var string: String {
+        switch self {
+            case .sbun(let name):
+                return name
+            case .test:
+                return "Package Tests"
+        }
+    }
+    
+    init(string: String) {
+        switch string {
+            case "Package Tests": self = .test
+            default: self = .sbun(string)
+        }
+    }
 }

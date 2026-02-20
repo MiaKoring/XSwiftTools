@@ -6,8 +6,9 @@ import TestParser
 @main
 struct XSwiftToolsApp: App {
     @Environment(\.chooseFile) var fileOpenDialog
-    @State var viewModel: TestViewModel = TestViewModel(path: nil)
-    @State var topBarModel: TopBarViewModel = TopBarViewModel()
+    @State var viewModel = TestViewModel(path: nil)
+    @State var topBarModel = TopBarViewModel()
+    @State var sbunModel = SBunViewModel()
     @AppStorage(PathKey.self) var lastPath
     
     var body: some Scene {
@@ -16,6 +17,7 @@ struct XSwiftToolsApp: App {
                 ContentView()
                     .environment(viewModel)
                     .environment(topBarModel)
+                    .environment(sbunModel)
                     .task { await startup() }
                     .sheet(
                         isPresented: Binding(
@@ -42,6 +44,7 @@ struct XSwiftToolsApp: App {
                 }
             }
         }
+        .defaultSize(width: 800, height: 600)
     }
     
     private func getResult(for path: String) async {
@@ -52,15 +55,19 @@ struct XSwiftToolsApp: App {
         topBarModel.processes.append(.indexing)
         let parser = TestParser(path: path)
         
+        var testFindingSucceeded = false
+        
         do {
             let (targets, name) = try await parser.testTargets()
             lastPath = path
             viewModel.path = path
             topBarModel.path = path
             topBarModel.projectName = name
+            sbunModel.path = path
             
             if !targets.isEmpty {
-                topBarModel.availableResponsers.insert(.test)
+                topBarModel.availableResponsers = []
+                testFindingSucceeded = true
                 topBarModel.selected = .test
             }
             
@@ -68,7 +75,31 @@ struct XSwiftToolsApp: App {
                 viewModel.tests[target] = parser.tests(in: target)
             }
         } catch {
-            viewModel.error = (error, "while opening project")
+            viewModel.error = (error, "while looking for tests.")
+        }
+        
+        if testFindingSucceeded {
+            topBarModel.availableResponsers = [.test]
+        } else {
+            topBarModel.availableResponsers = []
+        }
+        
+        let sbunParser = BundlerParser(path: path)
+        do {
+            let apps = try sbunParser.parse()
+            apps.forEach { app in
+                topBarModel.availableResponsers.insert(.sbun(app))
+            }
+        } catch {
+            viewModel.error = (error, "while looking for Swift Bundler apps.")
+        }
+        
+        do {
+            let simulators = try await sbunParser.simulators()
+            sbunModel.availableDestinations = ["Local": nil]
+            sbunModel.availableDestinations.merge(simulators, uniquingKeysWith: { _, new in new })
+        } catch {
+            viewModel.error = (error, "while looking for simulators.")
         }
     }
     
