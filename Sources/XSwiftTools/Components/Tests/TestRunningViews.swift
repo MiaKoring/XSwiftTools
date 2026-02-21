@@ -1,5 +1,5 @@
 import SwiftCrossUI
-import TestParser
+import XSwiftToolsSupport
 
 struct TestSidebar: View {
     @Environment(TestViewModel.self) var viewModel

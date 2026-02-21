@@ -1,6 +1,6 @@
 import SwiftCrossUI
 import DefaultBackend
-import TestParser
+import XSwiftToolsSupport
 
 @HotReloadable
 @main

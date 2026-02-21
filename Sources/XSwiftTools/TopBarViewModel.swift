@@ -1,5 +1,5 @@
 import SwiftCrossUI
-import TestParser
+import XSwiftToolsSupport
 
 @MainActor
 @ObservableObject
@@ -24,6 +24,7 @@ final class TopBarViewModel {
             availableResponsers.map {
                 $0.string
             }
+            .sorted(by: { $0 < $1 })
         }
     }
     
@@ -48,36 +49,17 @@ final class TopBarViewModel {
             print("Path must be set")
             return
         }
-        let runner = TestRunner(path: path)
+        let runner = XSwiftToolsSupport.TestRunner(path: path)
         var startedBuilding = false
         processes.append(.prepareBuilding)
         
         try await runner.build(test.testProductName) { line in
             self.buildOutput.append("\n\(line)")
-            
-            guard
-                line.starts(with: "["),
-                let closingIndex = line.firstIndex(of: "]"),
-                let dividingIndex = line.firstIndex(of: "/"),
-                dividingIndex < closingIndex
-            else { return }
-            
-            if !startedBuilding {
-                startedBuilding = true
-                self.processes.removeAll(where: { $0 == .prepareBuilding })
-            }
-            
-            let substring = line.prefix(upTo: closingIndex).dropFirst()
-            let parts = substring.split(separator: "/").map { Int($0)! }
-            
-            guard parts.count == 2 else { return }
-            
-            self.removeBuildingProcesses()
-            self.processes.append(.building(file: parts[0], total: parts[1]))
+            self.extractAndSetBuildProgress(line, startedBuilding: &startedBuilding)
         }
     }
     
-    private func removeBuildingProcesses() {
+    func removeBuildingProcesses() {
         self.processes.removeAll(where: {
             switch $0 {
                 case .building: return true
@@ -85,12 +67,44 @@ final class TopBarViewModel {
             }
         })
     }
+    
+    @discardableResult
+    func extractAndSetBuildProgress(
+        _ line: String,
+        startedBuilding: inout Bool
+    ) -> Bool {
+        guard
+            line.starts(with: "["),
+            let closingIndex = line.firstIndex(of: "]"),
+            let dividingIndex = line.firstIndex(of: "/"),
+            dividingIndex < closingIndex
+        else { return false }
+        
+        if !startedBuilding {
+            startedBuilding = true
+            self.processes.removeAll(where: { $0 == .prepareBuilding })
+        }
+        
+        let substring = line.prefix(upTo: closingIndex).dropFirst()
+        let parts = substring.split(separator: "/").map { Int($0)! }
+        
+        guard parts.count == 2 else { return false }
+        
+        self.removeBuildingProcesses()
+        self.processes.append(.building(file: parts[0], total: parts[1]))
+        
+        return true
+    }
 }
+
+
 
 enum TopBarProcess: Hashable {
     case testing
+    case running
     case prepareBuilding
     case buildFailed
+    case exitedWithError
     case building(file: Int, total: Int)
     case indexing
 }

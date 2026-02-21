@@ -1,5 +1,5 @@
 import SwiftCrossUI
-import TestParser
+import XSwiftToolsSupport
 
 struct ContentView: View {
     @Environment(TopBarViewModel.self) var topBarModel

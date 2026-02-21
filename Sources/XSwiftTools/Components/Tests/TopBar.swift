@@ -1,22 +1,28 @@
 import SwiftCrossUI
 import Foundation
 
-struct TopBar: View {
-    @Environment(TopBarViewModel.self) var viewModel
-    @Environment(TestViewModel.self) var testViewModel
-    @Environment(SBunViewModel.self) var sbunViewModel
-    @State var textWidth = 0.0
+struct TopBar: View, TestRunner {
+    @Environment(TopBarViewModel.self) var topBarModel
+    @Environment(TestViewModel.self) var testModel
+    @Environment(SBunViewModel.self) var sbunModel
+    @State var selectionWidth = 0.0
     @State var showBuildErrorSheet = false
     
     var isRunningEnabled: Bool {
-        guard let selected = viewModel.selected else { return false }
+        guard let selected = topBarModel.selected else { return false }
         
-        if selected == .test { return !testViewModel.isRunningTests }
+        if selected == .test { return !testModel.isRunningTests }
         
-        if case .sbun(_) = viewModel.selected {
-            return sbunViewModel.selectedDestination != nil
+        if case .sbun(_) = topBarModel.selected {
+            return sbunModel.selectedDestination != nil
         }
         return false
+    }
+    
+    var isSelectionChangeDisabled: Bool {
+        testModel.isRunningTests ||
+        sbunModel.process?.isRunning == true ||
+        !topBarModel.processes.filter { $0 != .buildFailed }.isEmpty
     }
     
     var body: some View {
@@ -24,104 +30,111 @@ struct TopBar: View {
             .stroke(.gray)
             .frame(height: 30)
             .overlay {
-                HStack {
-                    if let process = viewModel.sortedProcesses.first {
-                        ProcessView(process: process)
-                    }
-                    
-                    if viewModel.processes.contains(.buildFailed) {
-                        Circle()
-                            .stroke(.red, style: StrokeStyle(width: 3))
-                            .frame(width: 20)
-                            .overlay {
-                                Text("X")
-                                    .foregroundColor(.red)
-                            }
-                            .onTapGesture {
-                                showBuildErrorSheet = true
-                            }
-                    } else if viewModel.processes.count > 0 {
-                        Circle()
-                            .stroke(.blue, style: StrokeStyle(width: 3))
-                            .frame(width: 20)
-                            .overlay {
-                                Text("\(viewModel.processes.count)")
-                            }
-                    }
-                }
-                .padding(.trailing, 10)
-                .frame(maxWidth: .infinity, alignment: .trailing)
-            }
-            .overlay {
-                if let name = viewModel.projectName {
+                ZStack {
                     HStack {
-                        if
-                            case .sbun(_) = viewModel.selected,
-                            sbunViewModel.process?.isRunning == true
-                        {
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(.gray)
-                                .frame(width: 15, height: 15)
-                                .onTapGesture {
-                                    sbunViewModel.process?.terminate()
+                        if let process = topBarModel.sortedProcesses.first {
+                            ProcessView(process: process)
+                        }
+                        
+                        if !topBarModel.processes.filter({ $0 == .buildFailed || $0 == .exitedWithError }).isEmpty {
+                            Circle()
+                                .fill(.red)
+                                .frame(width: 20)
+                                .overlay {
+                                    Text("X")
+                                        .foregroundColor(.white)
                                 }
-                        } else {
-                            Triangle()
-                                .fill(.gray.opacity(isRunningEnabled ? 1: 0.3))
-                                .frame(width: 20, height: 20)
                                 .onTapGesture {
-                                    run()
+                                    print("tapped")
+                                    showBuildErrorSheet = true
+                                }
+                                .disabled(false)
+                        } else if topBarModel.processes.count > 0 {
+                            Circle()
+                                .stroke(.blue, style: StrokeStyle(width: 3))
+                                .frame(width: 20)
+                                .overlay {
+                                    Text("\(topBarModel.processes.count)")
                                 }
                         }
-                        Text(name)
-                        Arrow()
-                            .stroke(Color.gray, style: .init(width: 1.5))
-                            .frame(width: 5, height: 10)
-                        Picker(of: Array(viewModel.stringResponders), selection: viewModel.selectedStringBinding)
-                        if case .sbun(_) = viewModel.selected {
+                    }
+                    .padding(.trailing, 10)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    
+                    if let name = topBarModel.projectName {
+                        HStack {
+                            VStack {
+                                if
+                                    case .sbun(_) = topBarModel.selected,
+                                    sbunModel.process?.isRunning == true
+                                {
+                                    RoundedRectangle(cornerRadius: 2)
+                                        .fill(.gray)
+                                        .frame(width: 15, height: 15)
+                                        .onTapGesture {
+                                            sbunModel.process?.terminate()
+                                        }
+                                } else {
+                                    Triangle()
+                                        .fill(.gray.opacity(isRunningEnabled ? 1: 0.3))
+                                        .frame(width: 20, height: 20)
+                                        .onTapGesture {
+                                            run()
+                                        }
+                                }
+                            }
+                            .disabled(false)
+                            Text(name)
+                            .frame(minWidth: 100)
                             Arrow()
                                 .stroke(Color.gray, style: .init(width: 1.5))
                                 .frame(width: 5, height: 10)
-                            Picker(
-                                of: Array(sbunViewModel.availableDestinations.keys),
-                                selection: sbunViewModel.$selectedDestination
-                            )
-                            
-                            if sbunViewModel.selectedDestination == "Local" {
+                            Picker(of: Array(topBarModel.stringResponders), selection: topBarModel.selectedStringBinding)
+                            if case .sbun(_) = topBarModel.selected {
                                 Arrow()
                                     .stroke(Color.gray, style: .init(width: 1.5))
                                     .frame(width: 5, height: 10)
-                                Picker(of: ["AppKitBackend", "GtkBackend"], selection: sbunViewModel.$localRunningBackend)
+                                Picker(
+                                    of: Array(sbunModel.availableDestinations.keys),
+                                    selection: sbunModel.$selectedDestination
+                                )
+                                
+                                if sbunModel.selectedDestination == "Local" {
+                                    Arrow()
+                                        .stroke(Color.gray, style: .init(width: 1.5))
+                                        .frame(width: 5, height: 10)
+                                    Picker(of: ["AppKitBackend", "GtkBackend"], selection: sbunModel.$localRunningBackend)
+                                }
                             }
                         }
+                        .padding(.leading, 10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.trailing, 100)
+                        .disabled(isSelectionChangeDisabled)
                     }
-                    .padding(.horizontal, 10)
-                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
             .sheet(isPresented: $showBuildErrorSheet) {
                 ScrollView {
-                    Text(viewModel.buildOutput)
+                    Text(topBarModel.buildOutput)
                 }
+                .padding()
+                .frame(width: 400, height: 500)
             }
     }
     
     private func run() {
         guard isRunningEnabled else { return }
         Task {
-            if case let .sbun(name) = viewModel.selected {
+            if case let .sbun(name) = topBarModel.selected {
                 do {
-                    try await sbunViewModel.run(app: name)
+                    try await sbunModel.run(app: name, topBarModel: topBarModel)
                 } catch {
                     print(error.localizedDescription)
                 }
-            } else if case .test = viewModel.selected {
-                for test in testViewModel.tests.values {
-                    do {
-                        try await testViewModel.runTest(test)
-                    } catch {
-                        print(error.localizedDescription)
-                    }
+            } else if case .test = topBarModel.selected {
+                for test in testModel.tests.values {
+                    await runTest(test)
                 }
             }
         }
@@ -147,6 +160,10 @@ struct ProcessView: View {
                 Text("Indexing")
             case .buildFailed:
                 Text("Build failed")
+            case .running:
+                Text("Running")
+            case .exitedWithError:
+                Text("Exited with Error")
         }
     }
 }

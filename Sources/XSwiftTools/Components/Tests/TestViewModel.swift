@@ -1,6 +1,6 @@
 import Foundation
 import SwiftCrossUI
-import TestParser
+import XSwiftToolsSupport
 
 #if canImport(FoundationXML)
 import FoundationXML
@@ -56,7 +56,7 @@ final class TestViewModel: NSObject, @MainActor XMLParserDelegate {
         switch test {
             case let test as Test:
                 mark(test, with: .waiting)
-                let runner = TestRunner(path: path)
+                let runner = XSwiftToolsSupport.TestRunner(path: path)
                 
                 let outputPath = outputPathParameter.replacingOccurrences(of: ".xml", with: "\(test.filter)-swift-testing.xml")
                 try? FileManager.default.removeItem(atPath: outputPath)
@@ -67,7 +67,7 @@ final class TestViewModel: NSObject, @MainActor XMLParserDelegate {
                 await waitAndUpdate(path: outputPath)
             case let suite as TestSuite:
                 mark(suite, with: .waiting)
-                let runner = TestRunner(path: path)
+                let runner = XSwiftToolsSupport.TestRunner(path: path)
                 
                 let outputPath = outputPathParameter.replacingOccurrences(of: ".xml", with: "\(test.filter)-swift-testing.xml")
                 try? FileManager.default.removeItem(atPath: outputPath)

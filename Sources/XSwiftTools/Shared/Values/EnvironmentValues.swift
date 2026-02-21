@@ -1,5 +1,5 @@
 import SwiftCrossUI
-import TestParser
+import XSwiftToolsSupport
 
 extension EnvironmentValues {
     @Entry var runTest = UncheckedSendable<((TestRunnable) -> Void)?>(wrappedValue: nil)

@@ -1,18 +1,24 @@
 import SwiftCrossUI
-import TestParser
+import XSwiftToolsSupport
+import Foundation
 
+@MainActor
 @ObservableObject
 final class SBunViewModel: @unchecked Sendable {
     var path: String?
     var output: String = ""
+    @SwiftCrossUI.ObservationIgnored
+    var stderrOutput: String = ""
     var availableDestinations = [String: String?]()
     var selectedDestination: String? = "Local"
     var localRunningBackend: String?
-    var process: ChildProcess<UnspecifiedInputSource, PipeOutputDestination, UnspecifiedOutputDestination>?
+    var process: ChildProcess<UnspecifiedInputSource, PipeOutputDestination, PipeOutputDestination>?
     
-    func run(app: String) async throws {
+    func run(app: String, topBarModel: TopBarViewModel) async throws {
         guard let path else { return }
-        print("started")
+        
+        topBarModel.processes.removeAll(where: { $0 == .buildFailed })
+        
         let selectedDestination = selectedDestination ?? "Local"
         var arguments = [String]()
         var environment = [String: String]()
@@ -40,11 +46,95 @@ final class SBunViewModel: @unchecked Sendable {
         )
         
         output = ""
-        let process = try command.spawn()
-        self.process = process
+        stderrOutput = ""
+        process = try command.spawn()
         
+        var startedBuilding = false
+        let buildProgressCheckEnabled = selectedDestination == "Local"
+        
+        /*let stdoutTask = Task {
+            guard let process = self.process else { return }
+            var isRunning = false
+            for try await line in process.stdout.lines {
+                await Task.yield()
+                if buildProgressCheckEnabled && !isRunning {
+                    if topBarModel.extractAndSetBuildProgress(
+                        line,
+                        startedBuilding: &startedBuilding
+                    ) { continue }
+                }
+                if !isRunning {
+                    
+                }
+                
+                self.output.append("\n\(line)")
+            }
+        }
+        
+        let stderrTask = Task {
+            guard let process = self.process else { return }
+            for try await line in process.stderr.lines {
+                stderrOutput.append("\n\(line)")
+            }
+        }
+        
+        try await stdoutTask.value
+        try await stderrTask.value*/
+        guard let process = self.process else { return }
+        var isRunning = false
         for try await line in process.stdout.lines {
-            output.append("\n\(line)")
+            if
+                buildProgressCheckEnabled,
+                !isRunning,
+                topBarModel.extractAndSetBuildProgress(
+                    line,
+                    startedBuilding: &startedBuilding
+                )
+            { continue }
+            
+            if
+                buildProgressCheckEnabled,
+                !isRunning,
+                line.hasPrefix("Building for ")
+            {
+                topBarModel.processes.append(.building(file: 0, total: 0))
+            }
+            
+            if
+                !isRunning,
+                line.hasPrefix("Build of product '")
+            {
+                isRunning = true
+                topBarModel.removeBuildingProcesses()
+                topBarModel.processes.append(.running)
+                continue
+            }
+            self.output.append("\n\(line)")
+        }
+        
+        var errorLine = ""
+        
+        for try await line in process.stderr.lines {
+            if line.hasPrefix("error: ") {
+                errorLine = line
+                continue
+            }
+            stderrOutput.append("\n\(line)")
+        }
+        
+        topBarModel.processes.removeAll(where: { $0 == .running })
+        
+        process.terminate()
+        
+        if
+            let status = try process.statusIfAvailable,
+            !errorLine.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        {
+            await MainActor.run {
+                topBarModel.buildOutput = output + "\n" + stderrOutput + "\n" + errorLine
+                topBarModel.removeBuildingProcesses()
+                topBarModel.processes.append(isRunning ? .exitedWithError: .buildFailed)
+            }
         }
     }
 }
