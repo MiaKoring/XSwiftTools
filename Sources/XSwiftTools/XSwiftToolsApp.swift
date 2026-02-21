@@ -1,6 +1,7 @@
 import SwiftCrossUI
 import DefaultBackend
 import XSwiftToolsSupport
+import SystemPackage
 
 @HotReloadable
 @main
@@ -10,6 +11,7 @@ struct XSwiftToolsApp: App {
     @State var topBarModel = TopBarViewModel()
     @State var sbunModel = SBunViewModel()
     @AppStorage(PathKey.self) var lastPath
+    @State var showCleanAlert = false
     
     var body: some Scene {
         WindowGroup("XSwiftTools") {
@@ -35,12 +37,26 @@ struct XSwiftToolsApp: App {
                             .padding()
                         }
                     }
+                    .alert("Are you shure you want to clean the build folder?", isPresented: $showCleanAlert) {
+                        Button("Cancel") {
+                            showCleanAlert = false
+                        }
+                        Button("Yes") {
+                            cleanBuildFolder()
+                        }
+                    }
             }
         }
         .commands {
             CommandMenu("File") {
                 Button("Open") {
                     selectAndScan()
+                }
+            }
+            
+            CommandMenu("Project") {
+                Button("Clean build folder") {
+                    showCleanAlert = true
                 }
             }
         }
@@ -121,5 +137,14 @@ struct XSwiftToolsApp: App {
         if let lastPath {
             await getResult(for: lastPath)
         }
+    }
+    
+    private func cleanBuildFolder() {
+        guard let path = lastPath else { return }
+        _ = try? Command.findInPath(withName: "rm")!
+            .addArgument("-rf")
+            .addArgument(".build")
+            .setCWD(FilePath(path))
+            .waitForOutput()
     }
 }

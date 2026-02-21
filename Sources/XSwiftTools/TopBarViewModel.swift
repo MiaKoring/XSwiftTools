@@ -91,6 +91,7 @@ final class TopBarViewModel {
         guard parts.count == 2 else { return false }
         
         self.removeBuildingProcesses()
+        processes.removeAll(where: { $0 == .prepareBuilding })
         self.processes.append(.building(file: parts[0], total: parts[1]))
         
         return true

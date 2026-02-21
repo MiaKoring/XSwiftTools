@@ -18,6 +18,7 @@ final class SBunViewModel: @unchecked Sendable {
         guard let path else { return }
         
         topBarModel.processes.removeAll(where: { $0 == .buildFailed })
+        topBarModel.processes.append(.prepareBuilding)
         
         let selectedDestination = selectedDestination ?? "Local"
         var arguments = [String]()
@@ -52,34 +53,6 @@ final class SBunViewModel: @unchecked Sendable {
         var startedBuilding = false
         let buildProgressCheckEnabled = selectedDestination == "Local"
         
-        /*let stdoutTask = Task {
-            guard let process = self.process else { return }
-            var isRunning = false
-            for try await line in process.stdout.lines {
-                await Task.yield()
-                if buildProgressCheckEnabled && !isRunning {
-                    if topBarModel.extractAndSetBuildProgress(
-                        line,
-                        startedBuilding: &startedBuilding
-                    ) { continue }
-                }
-                if !isRunning {
-                    
-                }
-                
-                self.output.append("\n\(line)")
-            }
-        }
-        
-        let stderrTask = Task {
-            guard let process = self.process else { return }
-            for try await line in process.stderr.lines {
-                stderrOutput.append("\n\(line)")
-            }
-        }
-        
-        try await stdoutTask.value
-        try await stderrTask.value*/
         guard let process = self.process else { return }
         var isRunning = false
         for try await line in process.stdout.lines {
@@ -97,6 +70,7 @@ final class SBunViewModel: @unchecked Sendable {
                 !isRunning,
                 line.hasPrefix("Building for ")
             {
+                topBarModel.processes.removeAll(where: { $0 == .prepareBuilding })
                 topBarModel.processes.append(.building(file: 0, total: 0))
             }
             
