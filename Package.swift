@@ -15,6 +15,8 @@ let package = Package(
             branch: "main"
         ),*/
         .package(path: "../XSwiftToolsSupport"),
+        // The lineLimit PR I opened isn't merged yet. If you want to build it
+        // before its merged, please use https://github.com/MiaKoring/swift-cross-ui/tree/feat/lineLimit
         .package(path: "../swift-cross-ui"),
         .package(url: "https://github.com/Frizlab/FSEventsWrapper.git", .upToNextMajor(from: "2.1.0"))
     ],
