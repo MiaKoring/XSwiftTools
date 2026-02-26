@@ -26,6 +26,7 @@
 ### Roadmap
 - Linux support
 - Global keyboard shortcuts for running
+- Native Plugins using swift and swift-cross-ui
 
 ### Technical Foundation
 - [SwiftCrossUI](https://github.com/moreSwift/swift-cross-ui)
