@@ -1,11 +1,12 @@
 import SwiftCrossUI
 import XSwiftToolsSupport
 import Foundation
+import SystemPackage
 
-@MainActor
 @ObservableObject
 final class SBunViewModel: @unchecked Sendable {
     var path: String?
+    
     var output: String = ""
     @SwiftCrossUI.ObservationIgnored
     var stderrOutput: String = ""
@@ -13,11 +14,14 @@ final class SBunViewModel: @unchecked Sendable {
     var selectedDestination: String? = "Local"
     var localRunningBackend: String?
     var process: ChildProcess<UnspecifiedInputSource, PipeOutputDestination, PipeOutputDestination>?
+    var sbunPath = ""
     
+    @MainActor
     func run(app: String, topBarModel: TopBarViewModel) async throws {
         guard let path else { return }
-        
-        topBarModel.processes.removeAll(where: { $0 == .buildFailed })
+        topBarModel.processes.removeAll(where: {
+            $0 == .buildFailed || $0 == .prepareBuilding
+        })
         topBarModel.processes.append(.prepareBuilding)
         
         let selectedDestination = selectedDestination ?? "Local"
@@ -37,9 +41,8 @@ final class SBunViewModel: @unchecked Sendable {
             arguments.append(id)
         }
         
-        let parser = BundlerParser(path: path)
+        let parser = BundlerParser(path: path, sbunPath: sbunPath)
         
-        output = ""
         let command = try await parser.runAppCommand(
             named: app,
             environment: environment,
@@ -54,15 +57,17 @@ final class SBunViewModel: @unchecked Sendable {
         let buildProgressCheckEnabled = selectedDestination == "Local"
         
         guard let process = self.process else { return }
+        
         var isRunning = false
         for try await line in process.stdout.lines {
             if
                 buildProgressCheckEnabled,
                 !isRunning,
-                topBarModel.extractAndSetBuildProgress(
-                    line,
-                    startedBuilding: &startedBuilding
-                )
+                
+                    topBarModel.extractAndSetBuildProgress(
+                        line,
+                        startedBuilding: &startedBuilding
+                    )
             { continue }
             
             if
@@ -83,6 +88,7 @@ final class SBunViewModel: @unchecked Sendable {
                 topBarModel.processes.append(.running)
                 continue
             }
+            
             self.output.append("\n\(line)")
         }
         
@@ -104,11 +110,16 @@ final class SBunViewModel: @unchecked Sendable {
             let status = try process.statusIfAvailable,
             !errorLine.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         {
-            await MainActor.run {
-                topBarModel.buildOutput = output + "\n" + stderrOutput + "\n" + errorLine
-                topBarModel.removeBuildingProcesses()
-                topBarModel.processes.append(isRunning ? .exitedWithError: .buildFailed)
-            }
+            topBarModel.buildOutput = output + "\n" + stderrOutput + "\n" + errorLine
+            topBarModel.removeBuildingProcesses()
+            topBarModel.processes.removeAll(where: { $0 == .prepareBuilding })
+            topBarModel.processes.append(isRunning ? .exitedWithError: .buildFailed)
         }
     }
+    
+    public func clean() {
+        availableDestinations.removeAll()
+    }
 }
+
+extension ChildProcess<UnspecifiedInputSource, PipeOutputDestination, PipeOutputDestination>: @unchecked @retroactive Sendable {}

@@ -16,6 +16,7 @@ let package = Package(
         ),*/
         .package(path: "../XSwiftToolsSupport"),
         .package(path: "../swift-cross-ui"),
+        .package(url: "https://github.com/Frizlab/FSEventsWrapper.git", .upToNextMajor(from: "2.1.0"))
     ],
     targets: [
         .executableTarget(
@@ -24,6 +25,7 @@ let package = Package(
                 .product(name: "XSwiftToolsSupport", package: "XSwiftToolsSupport"),
                 .product(name: "SwiftCrossUI", package: "swift-cross-ui"),
                 .product(name: "DefaultBackend", package: "swift-cross-ui"),
+                .product(name: "FSEventsWrapper", package: "FSEventsWrapper")
             ]
         )
     ]

@@ -45,7 +45,6 @@ struct TopBar: View, TestRunner {
                                         .foregroundColor(.white)
                                 }
                                 .onTapGesture {
-                                    print("tapped")
                                     showBuildErrorSheet = true
                                 }
                                 .disabled(false)

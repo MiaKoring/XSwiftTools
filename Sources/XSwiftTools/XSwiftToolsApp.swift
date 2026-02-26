@@ -2,6 +2,7 @@ import SwiftCrossUI
 import DefaultBackend
 import XSwiftToolsSupport
 import SystemPackage
+import Foundation
 
 @HotReloadable
 @main
@@ -12,6 +13,11 @@ struct XSwiftToolsApp: App {
     @State var sbunModel = SBunViewModel()
     @AppStorage(PathKey.self) var lastPath
     @State var showCleanAlert = false
+    @AppStorage(\.sbunLocation) var sbunLocation
+    @State var showSbunConfigSheet = false
+    
+    let directoryMonitor = DirectoryMonitor()
+    @State var updateTask: Task<Void, any Error>?
     
     var body: some Scene {
         WindowGroup("XSwiftTools") {
@@ -20,7 +26,6 @@ struct XSwiftToolsApp: App {
                     .environment(viewModel)
                     .environment(topBarModel)
                     .environment(sbunModel)
-                    .task { await startup() }
                     .sheet(
                         isPresented: Binding(
                             get: { viewModel.error != nil },
@@ -45,12 +50,29 @@ struct XSwiftToolsApp: App {
                             cleanBuildFolder()
                         }
                     }
+                    .sheet(isPresented: $showSbunConfigSheet) {
+                        SBunConfigView()
+                            .padding()
+                            .frame(width: 200)
+                    }
+                    .onChange(of: sbunLocation, initial: true) {
+                        sbunModel.sbunPath = sbunLocation ?? ""
+                        Task {
+                            if let lastPath {
+                                await getResult(for: lastPath)
+                                observeFileSystem()
+                            }
+                        }
+                    }
             }
         }
         .commands {
             CommandMenu("File") {
                 Button("Open") {
                     selectAndScan()
+                }
+                Button("Set SBun Path") {
+                    showSbunConfigSheet = true
                 }
             }
             
@@ -67,6 +89,12 @@ struct XSwiftToolsApp: App {
         defer {
             topBarModel.processes.removeAll(where: { $0 == .indexing})
         }
+        
+        guard
+            let sbunLocation,
+            !topBarModel.processes.contains(.indexing)
+        else { return }
+        sbunModel.clean()
         
         topBarModel.processes.append(.indexing)
         let parser = TestParser(path: path)
@@ -100,7 +128,7 @@ struct XSwiftToolsApp: App {
             topBarModel.availableResponsers = []
         }
         
-        let sbunParser = BundlerParser(path: path)
+        let sbunParser = BundlerParser(path: path, sbunPath: sbunLocation)
         do {
             let apps = try sbunParser.parse()
             apps.forEach { app in
@@ -133,12 +161,6 @@ struct XSwiftToolsApp: App {
         }
     }
     
-    private func startup() async {
-        if let lastPath {
-            await getResult(for: lastPath)
-        }
-    }
-    
     private func cleanBuildFolder() {
         guard let path = lastPath else { return }
         _ = try? Command.findInPath(withName: "rm")!
@@ -146,5 +168,35 @@ struct XSwiftToolsApp: App {
             .addArgument(".build")
             .setCWD(FilePath(path))
             .waitForOutput()
+    }
+    
+    func observeFileSystem() {
+        if let lastPath {
+            directoryMonitor.stop()
+            directoryMonitor.startMonitoring(path: lastPath + "/Tests") {
+                Task {
+                    await getResult(for: lastPath)
+                }
+            }
+        }
+    }
+}
+
+extension AppStorageValues {
+    @Entry var sbunLocation: String?
+}
+
+struct SBunConfigView: View {
+    @AppStorage(\.sbunLocation) var sbunLocation
+    @State var sbunPath = ""
+    
+    var body: some View {
+        TextField(text: $sbunPath)
+            .onAppear {
+                sbunPath = sbunLocation ?? ""
+            }
+        Button("Save") {
+            sbunLocation = sbunPath
+        }
     }
 }

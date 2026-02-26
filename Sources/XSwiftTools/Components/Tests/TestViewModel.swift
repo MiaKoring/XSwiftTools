@@ -112,7 +112,7 @@ final class TestViewModel: NSObject, @MainActor XMLParserDelegate {
                 for test in suite.tests {
                     mark(test, with: state)
                 }
-            case let target as TargetTests:
+            case _ as TargetTests:
                 targetState = .waiting
             default: return
         }
