@@ -14,6 +14,7 @@ let package = Package(
             url: "https://github.com/stackotter/swift-cross-ui",
             branch: "main"
         ),*/
+        // For building use https://github.com/miakoring/XSwiftToolsSupport
         .package(path: "../XSwiftToolsSupport"),
         // The lineLimit PR I opened isn't merged yet. If you want to build it
         // before its merged, please use https://github.com/MiaKoring/swift-cross-ui/tree/feat/lineLimit
